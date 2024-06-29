@@ -1,10 +1,16 @@
+import Hero from './components/Hero';
+import Highlights from './components/Highlights';
+import Navbar from './components/Navbar';
+
 const App = () => {
-  const akkk = "asd";
+  const akkk = 'asd';
 
   return (
-    <div>
-      <h1 className="font-bold">Tailwind</h1>
-    </div>
+    <main className='bg-black'>
+      <Navbar />
+      <Hero />
+      <Highlights />
+    </main>
   );
 };
 
