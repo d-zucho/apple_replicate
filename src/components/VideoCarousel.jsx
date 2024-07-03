@@ -26,7 +26,7 @@ const VideoCarousel = () => {
   useGSAP(() => {
     // slider animation to move the video out of the screen and bring the next video in
     gsap.to('#slider', {
-      transform: `translateX(${-100 * videoId}%)`,
+      transform: `translateX(-${videoId * 100}%)`,
       duration: 2,
       ease: 'power2.inOut', // show visualizer https://gsap.com/docs/v3/Eases
     });
@@ -58,25 +58,83 @@ const VideoCarousel = () => {
     }
   }, [startPlay, videoId, isPlaying, loadedData]);
 
-  const handleLoadedMetaData = (i, e) => setLoadedData((pre) => [...pre, e]);
-
   useEffect(() => {
-    const currentProgress = 0;
+    let currentProgress = 0;
     let span = videoSpanRef.current;
 
     if (span[videoId]) {
-      // animate the progress of the video
+      // animation to move the indicator
       let anim = gsap.to(span[videoId], {
-        onUpdate: () => {},
-        onComplete: () => {},
-      });
-    }
-  }, [video, startPlay]);
+        onUpdate: () => {
+          // get the progress of the video
+          const progress = Math.ceil(anim.progress() * 100);
 
-  const handleProcess = (type, i) => {
+          if (progress != currentProgress) {
+            currentProgress = progress;
+
+            // set the width of the progress bar
+            gsap.to(videoDivRef.current[videoId], {
+              width:
+                window.innerWidth < 760
+                  ? '10vw' // mobile
+                  : window.innerWidth < 1200
+                    ? '10vw' // tablet
+                    : '4vw', // laptop
+            });
+
+            gsap.to(span[videoId], {
+              width: `${currentProgress}%`,
+              backgroundColor: 'white',
+            });
+          }
+        },
+        onComplete: () => {
+          if (isPlaying) {
+            gsap.to(videoDivRef.current[videoId], {
+              width: '12px',
+            });
+            gsap.to(span[videoId], {
+              backgroundColor: '#afafaf',
+            });
+          }
+        },
+      });
+
+      if (videoId == 0) {
+        anim.restart();
+      }
+
+      const animUpdate = () => {
+        anim.progress(
+          videoRef.current[videoId]?.currentTime /
+            highlightsSlides[videoId].videoDuration
+        );
+      };
+
+      if (isPlaying) {
+        // ticker to update the progress bar
+        gsap.ticker.add(animUpdate);
+      } else {
+        // remove the ticker when the video is paused (progress bar is stopped)
+        gsap.ticker.remove(animUpdate);
+      }
+    }
+  }, [videoId, startPlay]);
+
+  useEffect(() => {
+    if (loadedData.length > 3) {
+      if (!isPlaying) {
+        videoRef.current[videoId].pause();
+      } else {
+        startPlay && videoRef.current[videoId].play();
+      }
+    }
+  }, [startPlay, videoId, isPlaying, loadedData]);
+
+  const handleProcess = (type, index) => {
     switch (type) {
       case 'video-end':
-        setVideo((pre) => ({ ...pre, isEnd: true, videoId: i + 1 }));
+        setVideo((pre) => ({ ...pre, isEnd: true, videoId: index + 1 }));
         break;
 
       case 'video-last':
@@ -100,6 +158,9 @@ const VideoCarousel = () => {
     }
   };
 
+  const handleLoadedMetaData = (index, e) =>
+    setLoadedData((pre) => [...pre, e]);
+
   return (
     <>
       <div className='flex items-center'>
@@ -109,11 +170,17 @@ const VideoCarousel = () => {
               <div className='w-full h-full flex-center rounded-3xl overflow-hidden bg-black'>
                 <video
                   id='video'
+                  className={`${list.id === 2 && 'translate-x-44'} pointer-events-none`}
                   playsInline={true}
                   preload='auto'
                   muted
                   ref={(el) => (videoRef.current[index] = el)}
                   onLoadedMetadata={(e) => handleLoadedMetaData(index, e)}
+                  onEnded={() => {
+                    index !== 3
+                      ? handleProcess('video-end', index)
+                      : handleProcess('video-last');
+                  }}
                   onPlay={() =>
                     setVideo((pre) => ({ ...pre, isPlaying: true }))
                   }
@@ -135,7 +202,7 @@ const VideoCarousel = () => {
       </div>
 
       <div className='relative flex-center mt-10'>
-        <div className='flex-center py-5 px-7 bg-gray-300 bacdrop-blur rounded-full'>
+        <div className='flex-center py-5 px-7 bg-gray-300 backdrop-blur rounded-full'>
           {videoRef.current.map((_, index) => (
             <span
               key={index}
