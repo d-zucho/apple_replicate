@@ -1,13 +1,14 @@
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import ModelView from './ModelView';
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { yellowImg } from '../utils';
 
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { View } from '@react-three/drei';
 import { models, sizes } from '../constants';
+import { animateWithGsapTimeline } from '../utils/animations';
 
 const Model = () => {
   const [size, setSize] = useState('small');
@@ -17,9 +18,9 @@ const Model = () => {
     img: yellowImg,
   });
 
-  // Camera control for the model view
-  const cameraControllSmall = useRef();
-  const cameraControllLarge = useRef();
+  // camera control for the model view
+  const cameraControlSmall = useRef();
+  const cameraControlLarge = useRef();
 
   // model
   const small = useRef(new THREE.Group());
@@ -29,12 +30,26 @@ const Model = () => {
   const [smallRotation, setSmallRotation] = useState(0);
   const [largeRotation, setLargeRotation] = useState(0);
 
+  const tl = gsap.timeline();
+
+  useEffect(() => {
+    if (size === 'large') {
+      animateWithGsapTimeline(tl, small, smallRotation, '#view1', '#view2', {
+        transform: 'translateX(-100%)',
+        duration: 2,
+      });
+    }
+
+    if (size === 'small') {
+      animateWithGsapTimeline(tl, large, largeRotation, '#view2', '#view1', {
+        transform: 'translateX(0)',
+        duration: 2,
+      });
+    }
+  }, [size]);
+
   useGSAP(() => {
-    // heading
-    gsap.to('#heading', {
-      opacity: 1,
-      y: 0,
-    });
+    gsap.to('#heading', { y: 0, opacity: 1 });
   }, []);
 
   return (
@@ -50,16 +65,17 @@ const Model = () => {
               index={1}
               groupRef={small}
               gsapType='view1'
-              controlRef={cameraControllSmall}
+              controlRef={cameraControlSmall}
               setRotationState={setSmallRotation}
               item={model}
               size={size}
             />
+
             <ModelView
               index={2}
               groupRef={large}
               gsapType='view2'
-              controlRef={cameraControllLarge}
+              controlRef={cameraControlLarge}
               setRotationState={setLargeRotation}
               item={model}
               size={size}
@@ -68,10 +84,10 @@ const Model = () => {
             <Canvas
               className='w-full h-full'
               style={{
-                position: 'absolute',
+                position: 'fixed',
                 top: 0,
-                left: 0,
                 bottom: 0,
+                left: 0,
                 right: 0,
                 overflow: 'hidden',
               }}
@@ -86,9 +102,9 @@ const Model = () => {
 
             <div className='flex-center'>
               <ul className='color-container'>
-                {models.map((item, index) => (
+                {models.map((item, i) => (
                   <li
-                    key={index}
+                    key={i}
                     className='w-6 h-6 rounded-full mx-2 cursor-pointer'
                     style={{ backgroundColor: item.color[0] }}
                     onClick={() => setModel(item)}
