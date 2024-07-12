@@ -180,7 +180,7 @@ const VideoCarousel = () => {
                   ref={(el) => (videoRef.current[index] = el)}
                   onLoadedMetadata={(e) => handleLoadedMetaData(index, e)}
                   onEnded={() => {
-                    index !== 3
+                    index != 3
                       ? handleProcess('video-end', index)
                       : handleProcess('video-last');
                   }}
